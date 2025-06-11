@@ -1,12 +1,9 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "aws-devops-course-terraform-state-bucket" 
-  versioning {
-    enabled = true
-  }
+  bucket = var.s3_bucket_name
 
   lifecycle {
     prevent_destroy = true
@@ -14,6 +11,13 @@ resource "aws_s3_bucket" "terraform_state" {
 
   tags = {
     Name = "Terraform State Bucket"
-    Environment = "infra"
+    Environment = var.environment
+  }
+}
+
+resource "aws_s3_bucket_versioning" "terraform_state" {
+  bucket = var.s3_bucket_name 
+  versioning_configuration {
+    status = "Enabled"
   }
 }
