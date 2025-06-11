@@ -10,13 +10,13 @@ resource "aws_s3_bucket" "terraform_state" {
   }
 
   tags = {
-    Name = "Terraform State Bucket"
+    Name        = "Terraform State Bucket"
     Environment = var.environment
   }
 }
 
 resource "aws_s3_bucket_versioning" "terraform_state" {
-  bucket = var.s3_bucket_name 
+  bucket = var.s3_bucket_name
   versioning_configuration {
     status = "Enabled"
   }

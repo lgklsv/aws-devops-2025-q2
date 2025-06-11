@@ -14,12 +14,6 @@ variable "s3_bucket_name" {
   type        = string
 }
 
-variable "instance_type" {
-  description = "The EC2 instance type."
-  type        = string
-  default     = "t2.micro"
-}
-
 variable "environment" {
   description = "The deployment environment (e.g., dev, prod)."
   type        = string
