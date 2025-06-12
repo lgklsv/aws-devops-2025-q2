@@ -19,15 +19,25 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TR_VERSION }}
+
+      - name: Terraform Init (Check Job)
+        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
 
       - name: Terraform Format Check
         run: terraform fmt -check
