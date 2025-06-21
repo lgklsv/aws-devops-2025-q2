@@ -1,0 +1,24 @@
+# Local Terraform state
+terraform.tfstate
+terraform.tfstate.backup
+
+# Remote state override (not always present)
+*.tfstate.*
+crash.log
+
+# Terraform plan files
+*.tfplan
+tfplan
+
+# Sensitive Terraform variable files
+*.tfvars
+*.tfvars.json
+
+# Terraform provider plugins and lock files
+.terraform/
+.terraform.lock.hcl
+
+# IDE/editor configs
+.vscode/
+.idea/
+.DS_Store
