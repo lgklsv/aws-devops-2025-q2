@@ -1,6 +1,6 @@
 # AWS Infrastructure with Terraform
 
-This project sets up AWS infrastructure using Terraform, including an S3 bucket for Terraform state management and GitHub Actions OIDC provider integration.
+This project sets up a comprehensive AWS infrastructure using Terraform, including a VPC with public and private subnets, NAT Gateway, security groups, and an S3 bucket for Terraform state management with GitHub Actions OIDC provider integration.
 
 ## Prerequisites
 
@@ -12,25 +12,26 @@ This project sets up AWS infrastructure using Terraform, including an S3 bucket 
 
 ```
 .
-├── main.tf           # Main Terraform configuration
-├── backend.tf        # S3 backend configuration
-├── variables.tf      # Input variables
-├── oidc_provider.tf  # GitHub Actions OIDC provider configuration
-└── README.md         # This file
+├── main.tf              # Main Terraform configuration (AWS provider, S3 bucket)
+├── backend.tf           # S3 backend configuration
+├── variables.tf         # Input variables
+├── outputs.tf           # Outputs of the infrastructure
+├── vpc.tf               # VPC resource
+├── subnets.tf           # Public and private subnets
+├── internet_gateway.tf  # Internet Gateway for public subnets
+├── nat_gateway.tf       # NAT Gateway for private subnets
+├── route_tables.tf      # Route tables for public and private subnets
+├── security_groups.tf   # Security groups for bastion and internal resources
+├── oidc_provider.tf     # GitHub Actions OIDC provider configuration
+├── roles.tf             # IAM role for GitHub Actions
+└── README.md            # This file
 ```
 
 ## Backend Configuration
 
-The project uses an S3 backend for storing Terraform state. The backend configuration is split into two parts:
+The project uses an S3 backend for storing Terraform state. The backend configuration is in `backend.tf`, but it's intended to be overridden during initialization.
 
-1. `backend.tf` - Contains the basic backend configuration
-2. `dev-backend-config.tfvars` - Contains environment-specific backend settings
-
-This separation allows you to:
-
-- Keep sensitive backend configuration out of version control
-- Use different backend configurations for different environments
-- Override backend settings during initialization
+Create a `dev-backend-config.tfvars` file (or a name of your choice) with your backend settings.
 
 Example `dev-backend-config.tfvars`:
 
@@ -42,62 +43,55 @@ encrypt      = true
 use_lockfile = true
 ```
 
-## Components
-
-### S3 Bucket for Terraform State
-
-- Creates an S3 bucket for storing Terraform state
-- Enables versioning for state file history
-- Prevents accidental deletion of the bucket
-
-### GitHub Actions OIDC Provider
-
-- Sets up an OpenID Connect provider for GitHub Actions
-- Enables secure authentication between GitHub Actions and AWS
-- Outputs the OIDC provider ARN for use in other configurations
-
-## Usage
-
-1. Create a `dev-backend-config.tfvars` file with your backend configuration:
-
-```hcl
-bucket       = "your-terraform-state-bucket"
-key          = "dev/terraform.tfstate"
-region       = "us-east-1"
-encrypt      = true
-use_lockfile = true
-```
-
-2. Initialize Terraform with the backend configuration:
+Then initialize Terraform:
 
 ```bash
 terraform init -backend-config="dev-backend-config.tfvars"
 ```
 
-3. Create a `terraform.tfvars` file with your configuration:
+## Components
 
-```hcl
-project_name    = "my-project"
-aws_region      = "us-east-1"
-s3_bucket_name  = "my-terraform-state-bucket"
-environment     = "dev"  # Can be "dev", "staging", or "prod"
-```
+### Networking
 
-4. Review the planned changes:
+- **VPC**: Creates a Virtual Private Cloud (VPC) to host the infrastructure.
+- **Subnets**:
+  - **Public Subnets**: For resources that need to be accessible from the internet, like load balancers or bastion hosts.
+  - **Private Subnets**: For resources that shouldn't be directly accessible from the internet, like application servers or databases.
+- **Internet Gateway**: Provides internet access to the public subnets.
+- **NAT Gateway**: Allows resources in the private subnets to access the internet for updates and patches, without being exposed to incoming connections.
+- **Route Tables**: Manages routing for public and private subnets.
 
-```bash
-terraform plan
-```
+### Security
 
-5. Apply the configuration:
+- **Security Groups**:
+  - **Bastion SG**: A security group for a bastion host, allowing SSH access from a trusted IP range.
+  - **Internal SG**: A security group allowing traffic within the VPC, for communication between internal resources.
+- **GitHub Actions OIDC Provider**: Sets up an OpenID Connect provider for GitHub Actions, enabling secure, passwordless authentication from GitHub workflows to AWS.
+- **IAM Role**: Creates an IAM role for GitHub Actions with necessary permissions to manage the infrastructure resources.
 
-```bash
-terraform apply
-```
+### State Management
 
-## Security
+- **S3 Bucket for Terraform State**: An S3 bucket is created to store the Terraform state file remotely. It has versioning enabled to keep a history of state files and is protected from accidental deletion.
 
-- The S3 bucket has versioning enabled for state file history
-- The bucket has `prevent_destroy` lifecycle rule to prevent accidental deletion
-- GitHub Actions OIDC provider enables secure authentication without storing AWS credentials
-- Backend configuration is separated from the main configuration for better security
+## Usage
+
+1.  Create a `dev-backend-config.tfvars` file as described in the Backend Configuration section.
+2.  Initialize Terraform:
+    ```bash
+    terraform init -backend-config="dev-backend-config.tfvars"
+    ```
+3.  Create a `terraform.tfvars` file with your configuration:
+    ```hcl
+    project_name                 = "my-awesome-project"
+    aws_region                   = "us-east-1"
+    s3_bucket_name               = "my-terraform-state-bucket-unique-name"
+    environment                  = "dev"
+    ```
+4.  Review the planned changes:
+    ```bash
+    terraform plan
+    ```
+5.  Apply the configuration:
+    ```bash
+    terraform apply
+    ```
