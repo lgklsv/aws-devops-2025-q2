@@ -54,18 +54,18 @@ resource "aws_security_group" "k3s_nodes" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description = "SSH from Bastion"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+    description     = "SSH from Bastion"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
     security_groups = [aws_security_group.bastion.id]
   }
 
   ingress {
-    description = "k3s API from Bastion"
-    from_port   = 6443
-    to_port     = 6443
-    protocol    = "tcp"
+    description     = "k3s API from Bastion"
+    from_port       = 6443
+    to_port         = 6443
+    protocol        = "tcp"
     security_groups = [aws_security_group.bastion.id]
   }
 
