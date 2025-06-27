@@ -74,6 +74,8 @@ jobs:
           echo "aws_region = \"${{ env.AWS_REGION }}\"" >> github_actions.tfvars
           echo "environment = \"dev\"" >> github_actions.tfvars
           echo "s3_bucket_name = \"${{ secrets.TF_STATE_BUCKET_DEV }}\"" >> github_actions.tfvars
+          echo "key_name = \"${{ secrets.EC2_KEY_NAME }}\"" >> github_actions.tfvars
+          echo "my_ip_cidr = \"${{ secrets.MY_IP_CIDR }}\"" >> github_actions.tfvars
 
       - name: Terraform Init
         run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
