@@ -152,7 +152,9 @@ controller:
   containerEnvFrom: []
 
   # -- Environment variables for Jenkins Container
-  containerEnv: []
+  containerEnv:
+    - name: CASC_JENKINS_CONFIG
+      value: '/var/jenkins_home/casc_configs/casc.yaml'
   #   - name: http_proxy
   #     value: "http://192.168.64.1:3128"
 
@@ -411,6 +413,7 @@ controller:
     - configuration-as-code:1971.vf9280461ea_89
     - configuration-as-code-groovy
     - job-dsl
+    - matrix-auth
 
   # If set to false, Jenkins will download the minimum required version of all dependencies.
   # -- Download the minimum required version or latest version of all dependencies
@@ -519,6 +522,25 @@ controller:
     # - https://acme.org/jenkins.yaml
     # -- List of Jenkins Config as Code scripts
     configScripts:
+      casc: |
+        jenkins:
+          systemMessage: "Jenkins is secured and managed via JCasC. Unauthorized access is prohibited."
+          securityRealm:
+            local:
+              allowsSignup: false
+              users:
+                - id: "admin"
+                  password: "strong-admin-password" # DEMO PASSWORD
+                  name: "Jenkins Admin"
+          authorizationStrategy:
+            globalMatrix:
+              permissions:
+                - "Overall/Read:anonymous"
+                - "Overall/Administer:admin"
+                - "Job/Read:authenticated"
+                - "Job/Build:authenticated"
+          crumbIssuer:
+            standard: {} # Default standard crumb issuer
       hello-world-job: |
         jobs:
           - script: >
