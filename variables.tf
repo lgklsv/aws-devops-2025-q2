@@ -51,3 +51,13 @@ variable "ssh_access_cidr" {
   type        = string
   default     = "0.0.0.0/0"
 }
+
+variable "key_name" {
+  description = "The name of the SSH key pair to use for the Bastion host. Must already exist in AWS."
+  type        = string
+}
+
+variable "my_ip_cidr" {
+  description = "Local public IP in CIDR format for accessing the k3s API."
+  type        = string
+}
