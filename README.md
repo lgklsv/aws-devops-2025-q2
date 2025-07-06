@@ -95,3 +95,80 @@ terraform init -backend-config="dev-backend-config.tfvars"
     ```bash
     terraform apply
     ```
+
+## Kubernetes Cluster Setup
+
+### Bastion Host
+
+- A Bastion host is deployed in a public subnet for secure SSH access to private resources.
+- SSH access is restricted to your IP via the Bastion security group.
+
+### k3s Master and Worker Nodes
+
+- Two Ubuntu EC2 instances are deployed in private subnets: one as the k3s master, one as the worker.
+- Both nodes use a security group that allows necessary intra-cluster and Bastion access.
+
+### Installing k3s
+
+1. **SSH to the Bastion host:**
+   ```sh
+   ssh -i <your-key.pem> ec2-user@<bastion-public-ip>
+   ```
+2. **From the Bastion, SSH to the master node:**
+   ```sh
+   ssh ubuntu@<k3s-master-private-ip>
+   ```
+3. **On the master node, install k3s:**
+   ```sh
+   curl -sfL https://get.k3s.io | sh -
+   sudo k3s kubectl get nodes
+   ```
+4. **Get the join token:**
+   ```sh
+   sudo cat /var/lib/rancher/k3s/server/node-token
+   ```
+5. **SSH to the worker node (from Bastion):**
+   ```sh
+   ssh ubuntu@<k3s-worker-private-ip>
+   ```
+6. **Join the worker to the cluster:**
+   ```sh
+   curl -sfL https://get.k3s.io | K3S_URL="https://<master-private-ip>:6443" K3S_TOKEN="<token>" sh -
+   ```
+
+## Accessing the Cluster from Your Local Machine
+
+1. **Copy kubeconfig from master to Bastion:**
+   ```sh
+   ssh ubuntu@<k3s-master-private-ip> 'sudo cat /etc/rancher/k3s/k3s.yaml' > ~/k3s.yaml
+   ```
+2. **Copy kubeconfig from Bastion to your local machine:**
+   ```sh
+   scp -i <your-key.pem> ec2-user@<bastion-public-ip>:~/k3s.yaml .
+   ```
+3. **Edit `k3s.yaml` on your local machine:**
+   - Change the `server:` line to:
+     ```
+     server: https://localhost:6443
+     ```
+4. **Set up SSH port forwarding:**
+   ```sh
+   ssh -i <your-key.pem> -L 6443:<k3s-master-private-ip>:6443 ec2-user@<bastion-public-ip>
+   ```
+5. **Use kubectl locally:**
+   ```sh
+   export KUBECONFIG=./k3s.yaml
+   kubectl get nodes
+   ```
+
+## Deploying a Simple Workload
+
+1. **Deploy the nginx pod:**
+   ```sh
+   kubectl apply -f https://k8s.io/examples/pods/simple-pod.yaml
+   ```
+2. **Verify the pod is running:**
+   ```sh
+   kubectl get all --all-namespaces
+   ```
+   - You should see a pod named `nginx` in the output.
