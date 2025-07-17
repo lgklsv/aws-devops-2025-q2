@@ -1,16 +1,11 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.9-slim-buster'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    } 
+    agent any
 
     environment {
         APP_DIR = 'flask_app'
         DOCKER_REGISTRY = 'your-docker-registry-url'  // TODO: change
         DOCKER_IMAGE_NAME = 'flask-app'  
-        APP_VERSION = env.BUILD_NUMBER 
+        APP_VERSION = "${env.BUILD_NUMBER}"
 
         SONAR_SCANNER_HOME = tool 'SonarScanner'
         KUBECONFIG_CONTENT_ID = 'your-kubeconfig-secret-id' // TODO: change
@@ -67,7 +62,7 @@ pipeline {
                 }
             }
         }
-        
+
 
         // stage('Build & Push Docker Image') {
         //     steps {
