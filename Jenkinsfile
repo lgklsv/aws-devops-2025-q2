@@ -13,7 +13,7 @@ spec:
       args:
         - 99d
     - name: kaniko
-      image: gcr.io/kaniko-project/executor:latest-debug
+      image: gcr.io/kaniko-project/executor:latest
       command:
         - sleep
       args:
