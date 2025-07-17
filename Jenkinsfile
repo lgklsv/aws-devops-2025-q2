@@ -8,25 +8,13 @@ spec:
   containers:
     - name: python
       image: python:3.9-slim-buster
-      command:
-        - sleep
-      args:
-        - 99d
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
-      command:
-        - sleep
-      args:
-        - 99d
       volumeMounts:
         - name: docker-config
           mountPath: /kaniko/.docker
     - name: aws-cli
       image: amazon/aws-cli:latest
-      command:
-        - sleep
-      args:
-        - 99d
       volumeMounts:
         - name: docker-config
           mountPath: /kaniko/.docker
