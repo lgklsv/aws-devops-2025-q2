@@ -24,7 +24,7 @@ spec:
         DOCKER_IMAGE_NAME = 'flask-app'  
         APP_VERSION = "${env.BUILD_NUMBER}"
 
-        // SONAR_SCANNER_HOME = tool 'SonarScanner'
+        SONAR_SCANNER_HOME = tool 'SonarScanner'
         KUBECONFIG_CONTENT_ID = 'your-kubeconfig-secret-id' // TODO: change
         K8S_NAMESPACE = 'default' 
         HELM_CHART_PATH = 'flask-app-chart'
@@ -66,26 +66,19 @@ spec:
 
         stage('SonarQube Analysis') {
             steps {
-                container('python') {
-                    withSonarQubeEnv(credentialsId: 'sonar-token-secret-id', installationName: 'SonarQube') {
-                    script {
-                        echo 'Running SonarQube analysis for Python application...'
+                withSonarQubeEnv(credentialsId: 'sonar-token-secret-id', installationName: 'SonarQube') {
+                script {
+                    echo 'Running SonarQube analysis for Python application...'
 
-                        sh 'apt-get update && apt-get install -y wget unzip'
-                        sh 'wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip'
-                        sh 'unzip sonar-scanner-cli-5.0.1.3006-linux.zip'
-                        def SONAR_SCANNER_PATH = 'sonar-scanner-5.0.1.3006-linux'
-
-                        sh "${SONAR_SCANNER_PATH}/bin/sonar-scanner \
-                           -Dsonar.projectKey=${DOCKER_IMAGE_NAME} \
-                           -Dsonar.sources=${APP_DIR} \
-                           -Dsonar.python.version=3.9 \
-                           -Dsonar.host.url=${env.SONAR_HOST_URL} \
-                           -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
-                           -Dsonar.tests=${APP_DIR}/test \
-                           -Dsonar.test.inclusions=${APP_DIR}/test/** \
-                           -Dsonar.junit.reportPaths=${APP_DIR}/report.xml"
-                        }
+                    sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=${DOCKER_IMAGE_NAME} \
+                        -Dsonar.sources=${APP_DIR} \
+                        -Dsonar.python.version=3.9 \
+                        -Dsonar.host.url=${env.SONAR_HOST_URL} \
+                        -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
+                        -Dsonar.tests=${APP_DIR}/test \
+                        -Dsonar.test.inclusions=${APP_DIR}/test/** \
+                        -Dsonar.junit.reportPaths=${APP_DIR}/report.xml"
                     }
                 }
             }
