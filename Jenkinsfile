@@ -111,7 +111,7 @@ spec:
             steps {
                 withCredentials([
                     string(credentialsId: 'aws-account-id', variable: 'AWS_ACCOUNT_ID'),
-                    usernamePassword(credentialsId: 'aws-ecr-jenkins-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')
+                    aws(credentialsId: 'aws-ecr-jenkins-credential')
                 ]) {
                     script {
                         def DOCKER_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
