@@ -8,17 +8,33 @@ spec:
   containers:
     - name: python
       image: python:3.9-slim-buster
+      command:
+        - cat
+      tty: true
+      volumeMounts:
+        - name: workspace-volume
+          mountPath: /home/jenkins/agent
     - name: kaniko
       image: gcr.io/kaniko-project/executor:latest
+      command:
+        - cat
+      tty: true
       volumeMounts:
         - name: docker-config
           mountPath: /kaniko/.docker
+        - name: workspace-volume
+          mountPath: /home/jenkins/agent
     - name: aws-cli
       image: amazon/aws-cli:latest
+      command:
+        - cat
+      tty: true
       volumeMounts:
         - name: docker-config
           mountPath: /kaniko/.docker
   volumes:
+    - name: workspace-volume
+      emptyDir: {}
     - name: docker-config
       emptyDir: {}
 '''
