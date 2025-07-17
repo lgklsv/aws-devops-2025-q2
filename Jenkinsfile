@@ -8,19 +8,38 @@ spec:
   containers:
     - name: python
       image: python:3.9-slim-buster
-      # Command and args must be indented under the container
       command:
         - sleep
       args:
         - 99d
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:latest-debug
+      command:
+        - sleep
+      args:
+        - 99d
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+    - name: aws-cli
+      image: amazon/aws-cli:latest
+      command:
+        - sleep
+      args:
+        - 99d
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+  volumes:
+    - name: docker-config
+      emptyDir: {}
 '''
         }
     }
 
-
     environment {
         APP_DIR = 'flask_app'
-        DOCKER_REGISTRY = 'your-docker-registry-url'  // TODO: change
+        AWS_REGION = 'us-east-1'
         DOCKER_IMAGE_NAME = 'flask-app'  
         APP_VERSION = "${env.BUILD_NUMBER}"
 
@@ -84,27 +103,50 @@ spec:
             }
         }
 
-        // stage('Build & Push Docker Image') {
-        //     steps {
-        //         script {
-        //             echo "Building Docker image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${APP_VERSION}"
-        //             // Build the Docker image from the flask_app directory.
-        //             // The `.` at the end tells Docker to use the current directory (flask_app) as context.
-        //             dir("${APP_DIR}") {
-        //                 sh "docker build -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${APP_VERSION} ."
-        //             }
+        stage('Build & Push Docker Image') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'aws-account-id', variable: 'AWS_ACCOUNT_ID'),
+                    usernamePassword(credentialsId: 'aws-ecr-jenkins-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')
+                ]) {
+                    script {
+                        def DOCKER_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                        def IMAGE_FULL_TAG = "${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${APP_VERSION}"
 
-        //             // Log in to the Docker registry using Jenkins credentials
-        //             withCredentials([usernamePassword(credentialsId: 'docker-registry-credential-id', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-        //                 echo "Logging into Docker Registry: ${DOCKER_REGISTRY}"
-        //                 sh "docker login ${DOCKER_REGISTRY} -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}"
-        //                 echo "Pushing Docker image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${APP_VERSION}"
-        //                 sh "docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${APP_VERSION}"
-        //             }
-        //             echo 'Docker image pushed successfully!'
-        //         }
-        //     }
-        // }
+                        echo "Authenticating with ECR for ${DOCKER_REGISTRY}"
+                        container('aws-cli') {
+                            withAWS(credentials: 'aws-ecr-jenkins-credential', region: AWS_REGION) {
+                                sh """
+                                    TOKEN=\$(aws ecr get-login-password --region ${AWS_REGION})
+                                    echo '{
+                                      "auths": {
+                                        "${DOCKER_REGISTRY}": {
+                                          "username": "AWS",
+                                          "password": "${TOKEN}"
+                                        }
+                                      }
+                                    }' > /kaniko/.docker/config.json
+                                """
+                                echo "ECR authentication config.json created."
+                            }
+                        }
+
+                        container('kaniko') {
+                            echo "Building Docker image with Kaniko: ${IMAGE_FULL_TAG}"
+                            sh """
+                                /kaniko/executor \
+                                    --dockerfile=${APP_DIR}/Dockerfile \
+                                    --context=dir://${WORKSPACE}/${APP_DIR} \
+                                    --destination=${IMAGE_FULL_TAG} \
+                                    --skip-tls-verify=false
+                            """
+                            echo 'Docker image built and pushed successfully with Kaniko!'
+                        }
+                    }
+                }
+            }
+        }
+
         // stage('Deploy to Kubernetes') {
         //     steps {
         //         script {
