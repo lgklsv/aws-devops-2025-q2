@@ -1,10 +1,22 @@
 pipeline {
     agent {
-        docker {
-            image 'python:3.9-slim-buster'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        kubernetes {
+            yaml '''
+                apiVersion: v1
+                kind: Pod
+                spec:
+                containers:
+                - name: python
+                    image: python:3.9-slim-buster
+                    # Command to keep the container running
+                    command:
+                    - sleep
+                    args:
+                    - 99d 
+                '''
         }
     }
+
 
     environment {
         APP_DIR = 'flask_app'
@@ -22,11 +34,13 @@ pipeline {
     stages {
         stage('Install Python Dependencies') {
             steps {
-                script {
-                    echo "Navigating to application directory: ${APP_DIR}"
-                    dir("${APP_DIR}") { 
-                        echo 'Installing Python dependencies...'
-                        sh 'pip install --no-cache-dir -r requirements.txt'
+                container('python') {
+                    script {
+                        echo "Navigating to application directory: ${APP_DIR}"
+                        dir("${APP_DIR}") { 
+                            echo 'Installing Python dependencies...'
+                            sh 'pip install --no-cache-dir -r requirements.txt'
+                        }
                     }
                 }
             }
@@ -34,11 +48,13 @@ pipeline {
 
         stage('Run Unit Tests') {
             steps {
-                script {
-                    echo 'Running unit tests with pytest...'
-                    dir("${APP_DIR}") {
-                        sh 'pytest --junitxml=report.xml'
-                    }
+                container('python') {
+                    script {
+                        echo 'Running unit tests with pytest...'
+                        dir("${APP_DIR}") {
+                            sh 'pytest --junitxml=report.xml'
+                        }
+                    }   
                 }
             }
             post {
@@ -50,9 +66,15 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv(credentialsId: 'sonar-token-secret-id', installationName: 'SonarQube') {
+                container('python') {
+                    withSonarQubeEnv(credentialsId: 'sonar-token-secret-id', installationName: 'SonarQube') {
                     script {
                         echo 'Running SonarQube analysis for Python application...'
+
+                        sh 'apt-get update && apt-get install -y wget unzip'
+                        sh 'wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip'
+                        sh 'unzip sonar-scanner-cli-5.0.1.3006-linux.zip'
+                        def SONAR_SCANNER_PATH = 'sonar-scanner-5.0.1.3006-linux'
 
                         sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner \
                            -Dsonar.projectKey=${DOCKER_IMAGE_NAME} \
@@ -63,6 +85,7 @@ pipeline {
                            -Dsonar.tests=${APP_DIR}/test \
                            -Dsonar.test.inclusions=${APP_DIR}/test/** \
                            -Dsonar.junit.reportPaths=${APP_DIR}/report.xml"
+                        }
                     }
                 }
             }
