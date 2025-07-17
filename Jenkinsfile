@@ -67,18 +67,18 @@ spec:
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv(credentialsId: 'sonar-token-secret-id', installationName: 'SonarQube') {
-                script {
-                    echo 'Running SonarQube analysis for Python application...'
+                    script {
+                        echo 'Running SonarQube analysis for Python application...'
 
-                    sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=${DOCKER_IMAGE_NAME} \
-                        -Dsonar.sources=${APP_DIR} \
-                        -Dsonar.python.version=3.9 \
-                        -Dsonar.host.url=${env.SONAR_HOST_URL} \
-                        -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
-                        -Dsonar.tests=${APP_DIR}/test \
-                        -Dsonar.test.inclusions=${APP_DIR}/test/** \
-                        -Dsonar.junit.reportPaths=${APP_DIR}/report.xml"
+                        sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                            -Dsonar.projectKey=${DOCKER_IMAGE_NAME} \
+                            -Dsonar.sources=${APP_DIR} \
+                            -Dsonar.python.version=3.9 \
+                            -Dsonar.host.url=${env.SONAR_HOST_URL} \
+                            -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
+                            -Dsonar.tests=${APP_DIR}/tests \
+                            -Dsonar.test.inclusions=${APP_DIR}/tests/** \
+                            -Dsonar.junit.reportPaths=${APP_DIR}/report.xml"
                     }
                 }
             }
