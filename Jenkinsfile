@@ -2,18 +2,18 @@ pipeline {
     agent {
         kubernetes {
             yaml '''
-                apiVersion: v1
-                kind: Pod
-                spec:
-                containers:
-                - name: python
-                    image: python:3.9-slim-buster
-                    # Command to keep the container running
-                    command:
-                    - sleep
-                    args:
-                    - 99d 
-                '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: python
+      image: python:3.9-slim-buster
+      # Command and args must be indented under the container
+      command:
+        - sleep
+      args:
+        - 99d
+'''
         }
     }
 
@@ -24,7 +24,7 @@ pipeline {
         DOCKER_IMAGE_NAME = 'flask-app'  
         APP_VERSION = "${env.BUILD_NUMBER}"
 
-        SONAR_SCANNER_HOME = tool 'SonarScanner'
+        // SONAR_SCANNER_HOME = tool 'SonarScanner'
         KUBECONFIG_CONTENT_ID = 'your-kubeconfig-secret-id' // TODO: change
         K8S_NAMESPACE = 'default' 
         HELM_CHART_PATH = 'flask-app-chart'
@@ -76,7 +76,7 @@ pipeline {
                         sh 'unzip sonar-scanner-cli-5.0.1.3006-linux.zip'
                         def SONAR_SCANNER_PATH = 'sonar-scanner-5.0.1.3006-linux'
 
-                        sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                        sh "${SONAR_SCANNER_PATH}/bin/sonar-scanner \
                            -Dsonar.projectKey=${DOCKER_IMAGE_NAME} \
                            -Dsonar.sources=${APP_DIR} \
                            -Dsonar.python.version=3.9 \
