@@ -11,6 +11,13 @@ spec:
       command:
         - cat
       tty: true
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "250m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
       volumeMounts:
         - name: workspace-volume
           mountPath: /home/jenkins/agent
@@ -19,6 +26,13 @@ spec:
       command:
         - cat
       tty: true
+      resources:
+        requests:
+          memory: "512Mi"
+          cpu: "500m"
+        limits:
+          memory: "1Gi"
+          cpu: "1000m"
       volumeMounts:
         - name: docker-config
           mountPath: /kaniko/.docker
@@ -29,6 +43,13 @@ spec:
       command:
         - cat
       tty: true
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "100m"
+        limits:
+          memory: "128Mi"
+          cpu: "200m"
       volumeMounts:
         - name: docker-config
           mountPath: /kaniko/.docker
