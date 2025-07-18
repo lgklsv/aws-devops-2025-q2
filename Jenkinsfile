@@ -174,11 +174,13 @@ spec:
 
                         echo "Deploying application to K8s with Helm using image tag: ${APP_VERSION}"
                         def DOCKER_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-                        sh "helm upgrade --install ${HELM_RELEASE_NAME} ${HELM_CHART_PATH} \\
-                           --namespace ${K8S_NAMESPACE} \\
-                           --set image.repository=${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME} \\
-                           --set image.tag=${APP_VERSION} \\
-                           --wait --atomic"
+                        sh """
+                            helm upgrade --install ${HELM_RELEASE_NAME} ${HELM_CHART_PATH} \\
+                               --namespace ${K8S_NAMESPACE} \\
+                               --set image.repository=${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME} \\
+                               --set image.tag=${APP_VERSION} \\
+                               --wait --atomic
+                        """
 
                         echo 'Helm deployment complete!'
                     }
