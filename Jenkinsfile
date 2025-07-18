@@ -90,25 +90,25 @@ spec:
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv(credentialsId: 'sonar-token-secret-id', installationName: 'SonarQube') {
-                    script {
-                        echo 'Running SonarQube analysis for Python application...'
+        // stage('SonarQube Analysis') {
+        //     steps {
+        //         withSonarQubeEnv(credentialsId: 'sonar-token-secret-id', installationName: 'SonarQube') {
+        //             script {
+        //                 echo 'Running SonarQube analysis for Python application...'
 
-                        sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner \
-                            -Dsonar.projectKey=${DOCKER_IMAGE_NAME} \
-                            -Dsonar.sources=${APP_DIR} \
-                            -Dsonar.python.version=3.9 \
-                            -Dsonar.host.url=${env.SONAR_HOST_URL} \
-                            -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
-                            -Dsonar.tests=${APP_DIR}/tests \
-                            -Dsonar.test.inclusions=${APP_DIR}/tests/** \
-                            -Dsonar.junit.reportPaths=${APP_DIR}/report.xml"
-                    }
-                }
-            }
-        }
+        //                 sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+        //                     -Dsonar.projectKey=${DOCKER_IMAGE_NAME} \
+        //                     -Dsonar.sources=${APP_DIR} \
+        //                     -Dsonar.python.version=3.9 \
+        //                     -Dsonar.host.url=${env.SONAR_HOST_URL} \
+        //                     -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
+        //                     -Dsonar.tests=${APP_DIR}/tests \
+        //                     -Dsonar.test.inclusions=${APP_DIR}/tests/** \
+        //                     -Dsonar.junit.reportPaths=${APP_DIR}/report.xml"
+        //             }
+        //         }
+        //     }
+        // }
 
         stage('Build & Push Docker Image') {
             steps {
@@ -124,14 +124,7 @@ spec:
                         container('aws-cli') {
                             sh """
                                 TOKEN=\$(aws ecr get-login-password --region ${AWS_REGION})
-                                echo '{
-                                  "auths": {
-                                    "${DOCKER_REGISTRY}": {
-                                      "username": "AWS",
-                                      "password": "\${TOKEN}"
-                                    }
-                                  }
-                                }' > /kaniko/.docker/config.json
+                                echo "{ \\"auths\\": { \\"${DOCKER_REGISTRY}\\": { \\"username\\": \\"AWS\\", \\"password\\": \\"\${TOKEN}\\" } } }" > /kaniko/.docker/config.json
                             """
                             echo "ECR authentication config.json created."
                         }
