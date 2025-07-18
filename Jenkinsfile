@@ -9,30 +9,18 @@ spec:
     - name: python
       image: python:3.9-slim-buster
       command:
-        - cat
-      tty: true
-      resources:
-        requests:
-          memory: "256Mi"
-          cpu: "250m"
-        limits:
-          memory: "512Mi"
-          cpu: "500m"
+        - sleep
+      args:
+        - 99d
       volumeMounts:
         - name: workspace-volume
           mountPath: /home/jenkins/agent
     - name: kaniko
       image: gcr.io/kaniko-project/executor:debug
       command:
-        - cat
-      tty: true
-      resources:
-        requests:
-          memory: "512Mi"
-          cpu: "500m"
-        limits:
-          memory: "1Gi"
-          cpu: "1000m"
+        - sleep
+      args:
+        - 99d
       volumeMounts:
         - name: docker-config
           mountPath: /kaniko/.docker
@@ -41,15 +29,9 @@ spec:
     - name: aws-cli
       image: amazon/aws-cli:latest
       command:
-        - cat
-      tty: true
-      resources:
-        requests:
-          memory: "64Mi"
-          cpu: "100m"
-        limits:
-          memory: "128Mi"
-          cpu: "200m"
+        - sleep
+      args:
+        - 99d
       volumeMounts:
         - name: docker-config
           mountPath: /kaniko/.docker
