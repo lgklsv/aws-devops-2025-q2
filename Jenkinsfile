@@ -122,20 +122,18 @@ spec:
 
                         echo "Authenticating with ECR for ${DOCKER_REGISTRY}"
                         container('aws-cli') {
-                            withAWS(credentials: 'aws-ecr-jenkins-credential', region: AWS_REGION) {
-                                sh """
-                                    TOKEN=\$(aws ecr get-login-password --region ${AWS_REGION})
-                                    echo '{
-                                      "auths": {
-                                        "${DOCKER_REGISTRY}": {
-                                          "username": "AWS",
-                                          "password": "${TOKEN}"
-                                        }
-                                      }
-                                    }' > /kaniko/.docker/config.json
-                                """
-                                echo "ECR authentication config.json created."
-                            }
+                            sh """
+                                TOKEN=\$(aws ecr get-login-password --region ${AWS_REGION})
+                                echo '{
+                                  "auths": {
+                                    "${DOCKER_REGISTRY}": {
+                                      "username": "AWS",
+                                      "password": "${TOKEN}"
+                                    }
+                                  }
+                                }' > /kaniko/.docker/config.json
+                            """
+                            echo "ECR authentication config.json created."
                         }
 
                         container('kaniko') {
