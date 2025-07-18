@@ -35,10 +35,23 @@ spec:
       volumeMounts:
         - name: docker-config
           mountPath: /kaniko/.docker
+    - name: kubectl
+      image: bitnami/kubectl:latest
+      command:
+        - sleep
+      args:
+        - 99d
+      volumeMounts:
+        - name: workspace-volume
+          mountPath: /home/jenkins/agent
+        - name: kubeconfig-volume
+          mountPath: /home/jenkins/.kube
   volumes:
     - name: workspace-volume
       emptyDir: {}
     - name: docker-config
+      emptyDir: {}
+    - name: kubeconfig-volume
       emptyDir: {}
 '''
         }
@@ -51,7 +64,7 @@ spec:
         APP_VERSION = "${env.BUILD_NUMBER}"
 
         SONAR_SCANNER_HOME = tool 'SonarScanner'
-        KUBECONFIG_CONTENT_ID = 'your-kubeconfig-secret-id' // TODO: change
+        KUBECONFIG_CONTENT_ID = 'k8s-cluster-kubeconfig'
         K8S_NAMESPACE = 'default' 
         HELM_CHART_PATH = 'flask-app-chart'
         HELM_RELEASE_NAME = 'flask-app-release'
@@ -145,60 +158,57 @@ spec:
             }
         }
 
-        // stage('Deploy to Kubernetes') {
-        //     steps {
-        //         script {
-        //             echo 'Setting up Kubeconfig for deployment...'
-        //             // Retrieve Kubeconfig content from Jenkins Secret and save to a temporary file
-        //             // KUBECONFIG_CONTENT_ID refers to a 'Secret file' credential type in Jenkins
-        //             // OR you can use 'Secret text' and echo it as shown in previous example.
-        //             // Let's assume 'Secret text' for simplicity:
-        //             withCredentials([string(credentialsId: KUBECONFIG_CONTENT_ID, variable: 'KUBECONFIG_CONTENT')]) {
-        //                 sh "mkdir -p \${HOME}/.kube"
-        //                 sh "echo \"\$KUBECONFIG_CONTENT\" > \${HOME}/.kube/config"
-        //                 sh "chmod 600 \${HOME}/.kube/config"
-        //             }
+        stage('Deploy to Kubernetes') {
+            steps {
+                container('kubectl') { 
+                    script {
+                        echo 'Setting up Kubeconfig for deployment...'
 
-        //             // Ensure kubectl is configured
-        //             sh "kubectl config use-context $(kubectl config current-context)" // Or specific context if you have multiple
+                        withCredentials([string(credentialsId: KUBECONFIG_CONTENT_ID, variable: 'KUBECONFIG_CONTENT')]) {
+                            sh "mkdir -p \${HOME}/.kube"
+                            sh "echo \"\$KUBECONFIG_CONTENT\" > \${HOME}/.kube/config"
+                            sh "chmod 600 \${HOME}/.kube/config"
+                        }
 
-        //             echo "Deploying application to K8s with Helm using image tag: ${APP_VERSION}"
-        //             sh "helm upgrade --install ${HELM_RELEASE_NAME} ${HELM_CHART_PATH} \
-        //                --namespace ${K8S_NAMESPACE} \
-        //                --set image.repository=${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME} \
-        //                --set image.tag=${APP_VERSION} \
-        //                --wait --atomic"
+                        echo "Configuring kubectl with context: \$(kubectl config current-context)"
 
-        //             echo 'Helm deployment complete!'
-        //         }
-        //     }
-        // }
-        // stage('Verify Application') {
-        //     steps {
-        //         script {
-        //             echo 'Performing application verification...'
-        //             // This part is highly dependent on how your Flask app is exposed in K8s (Service type, Ingress).
-        //             // For a simple NodePort service in K3s:
-        //             // 1. Get the Node IP (your K3s node IP, e.g., 192.168.49.2 from earlier)
-        //             // 2. Get the NodePort assigned to your service (e.g., 3xxxx)
-        //             //    You can get this dynamically:
-        //             def nodeIp = sh(returnStdout: true, script: "kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type==\"InternalIP\")].address}'").trim()
-        //             def nodePort = sh(returnStdout: true, script: "kubectl get service ${HELM_RELEASE_NAME} -n ${K8S_NAMESPACE} -o jsonpath='{.spec.ports[0].nodePort}'").trim()
-        //             def appUrl = "http://${nodeIp}:${nodePort}"
+                        echo "Deploying application to K8s with Helm using image tag: ${APP_VERSION}"
+                        def DOCKER_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                        sh "helm upgrade --install ${HELM_RELEASE_NAME} ${HELM_CHART_PATH} \\
+                           --namespace ${K8S_NAMESPACE} \\
+                           --set image.repository=${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME} \\
+                           --set image.tag=${APP_VERSION} \\
+                           --wait --atomic"
 
-        //             echo "Curling application at ${appUrl}..."
-        //             // Loop and retry for a few seconds as the service might take a moment to be ready
-        //             retry(5) { // Retry up to 5 times
-        //                 timeout(time: 60, unit: 'SECONDS') { // Timeout for each curl attempt
-        //                     sh "curl -f --max-time 10 ${appUrl}"
-        //                     // Add assertion if your "hello world" route returns specific text
-        //                     // sh "curl -f ${appUrl} | grep 'Hello World'"
-        //                 }
-        //             }
-        //             echo 'Application verification successful!'
-        //         }
-        //     }
-        // }
+                        echo 'Helm deployment complete!'
+                    }
+                }
+            }
+        }
+
+        stage('Verify Application') {
+            steps {
+                container('kubectl') {
+                    script {
+                        echo 'Performing application verification...'
+
+                        def nodeIp = sh(returnStdout: true, script: "kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type==\"InternalIP\")].address}'").trim()
+                        def nodePort = sh(returnStdout: true, script: "kubectl get service ${HELM_RELEASE_NAME} -n ${K8S_NAMESPACE} -o jsonpath='{.spec.ports[0].nodePort}'").trim()
+                        def appUrl = "http://${nodeIp}:${nodePort}"
+
+                        echo "Curling application at ${appUrl}..."
+                        retry(10) {
+                            timeout(time: 90, unit: 'SECONDS') {
+                                sh "curl -f --max-time 10 ${appUrl}"
+
+                                sh "curl -f ${appUrl} | grep 'Hello, World!'"
+                            }
+                        }
+                        echo 'Application verification successful!'
+                    }
+                }
+            }
+        }
     }
 
     post {
