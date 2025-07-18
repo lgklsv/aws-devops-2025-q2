@@ -128,7 +128,7 @@ spec:
                                   "auths": {
                                     "${DOCKER_REGISTRY}": {
                                       "username": "AWS",
-                                      "password": "${TOKEN}"
+                                      "password": "\${TOKEN}"
                                     }
                                   }
                                 }' > /kaniko/.docker/config.json
