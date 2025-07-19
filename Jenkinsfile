@@ -36,7 +36,7 @@ spec:
         - name: docker-config
           mountPath: /kaniko/.docker
     - name: kubectl
-      image: alpine/k8s:latest
+      image: alpine/k8s:1.30.14
       command:
         - sleep
       args:
