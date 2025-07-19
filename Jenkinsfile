@@ -166,7 +166,7 @@ spec:
 
                         withCredentials([string(credentialsId: KUBECONFIG_CONTENT_ID, variable: 'KUBECONFIG_CONTENT')]) {
                             sh "echo \"\$KUBECONFIG_CONTENT\" > /home/jenkins/.kube/config"
-                            sh "chmod 600 \${HOME}/.kube/config"
+                            sh "chmod 600 /home/jenkins/.kube/config"
                         }
 
                         echo "Configuring kubectl with context: \$(kubectl config current-context)"
@@ -215,7 +215,7 @@ spec:
     post {
         always {
             echo 'Pipeline finished.'
-            sh "rm -f \${HOME}/.kube/config"
+            sh "rm -f /home/jenkins/.kube/config"
         }
         success {
             echo 'Pipeline succeeded! Sending success notification.'
