@@ -67,6 +67,7 @@ spec:
         KUBECONFIG_CONTENT_ID = 'k8s-cluster-kubeconfig'
         K8S_NAMESPACE = 'default' 
         HELM_CHART_PATH = 'flask-app-chart'
+        HELM_CHART_NAME = 'flask-app-chart'
         HELM_RELEASE_NAME = 'flask-app-release'
         K8S_PULL_SECRET_NAME = 'ecr-registry-secret'
     }
@@ -222,7 +223,7 @@ spec:
                         echo 'Performing application verification...'
 
                         def nodeIp = sh(returnStdout: true, script: "kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type==\"InternalIP\")].address}'").trim()
-                        def nodePort = sh(returnStdout: true, script: "kubectl get service ${HELM_RELEASE_NAME} -n ${K8S_NAMESPACE} -o jsonpath='{.spec.ports[0].nodePort}'").trim()
+                        def nodePort = sh(returnStdout: true, script: "kubectl get service ${HELM_RELEASE_NAME}-${HELM_CHART_NAME} -n ${K8S_NAMESPACE} -o jsonpath='{.spec.ports[0].nodePort}'").trim()
                         def appUrl = "http://${nodeIp}:${nodePort}"
 
                         echo "Curling application at ${appUrl}..."
