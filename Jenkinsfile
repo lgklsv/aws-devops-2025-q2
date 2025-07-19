@@ -248,9 +248,17 @@ spec:
         }
         success {
             echo 'Pipeline succeeded! Sending success notification.'
+            slackSend (
+                color: 'good',
+                message: "SUCCESS: Pipeline `${env.JOB_NAME}` build `${env.BUILD_NUMBER}` for `${env.DOCKER_IMAGE_NAME}` completed successfully. <${env.BUILD_URL}|Open Build>"
+            )
         }
         failure {
             echo 'Pipeline failed! Sending failure notification.'
+            slackSend (
+                color: 'danger',
+                message: "FAILURE: Pipeline `${env.JOB_NAME}` build `${env.BUILD_NUMBER}` for `${env.DOCKER_IMAGE_NAME}` *FAILED*. <${env.BUILD_URL}|Open Build>"
+            )
         }
     }
 }
