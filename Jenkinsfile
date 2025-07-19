@@ -126,11 +126,13 @@ spec:
         stage('Build & Push Docker Image') {
             steps {
                 withCredentials([
-                    string(credentialsId: 'aws-account-id', variable: 'AWS_ACCOUNT_ID'),
+                    string(credentialsId: 'aws-account-id', variable: 'AWS_ACCOUNT_ID_SECRET'),
                     aws(credentialsId: 'aws-ecr-jenkins-credential')
                 ]) {
                     script {
-                        def DOCKER_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                        env.AWS_ACCOUNT_ID = AWS_ACCOUNT_ID_SECRET
+
+                        def DOCKER_REGISTRY = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
                         def IMAGE_FULL_TAG = "${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME}:${APP_VERSION}"
 
                         echo "Authenticating with ECR for ${DOCKER_REGISTRY}"
@@ -172,7 +174,7 @@ spec:
                         echo "Configuring kubectl with context: \$(kubectl config current-context)"
 
                         echo "Deploying application to K8s with Helm using image tag: ${APP_VERSION}"
-                        def DOCKER_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                        def DOCKER_REGISTRY = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
                         sh """
                             helm upgrade --install ${HELM_RELEASE_NAME} ${HELM_CHART_PATH} \\
                                --namespace ${K8S_NAMESPACE} \\
