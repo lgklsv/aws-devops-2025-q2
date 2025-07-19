@@ -68,6 +68,7 @@ spec:
         K8S_NAMESPACE = 'default' 
         HELM_CHART_PATH = 'flask-app-chart'
         HELM_RELEASE_NAME = 'flask-app-release'
+        K8S_PULL_SECRET_NAME = 'ecr-registry-secret'
     }
 
     stages {
@@ -173,6 +174,27 @@ spec:
 
                         echo "Configuring kubectl with context: \$(kubectl config current-context)"
 
+                        echo "Creating Kubernetes secret for ECR access..."
+                        withCredentials([
+                            string(credentialsId: 'aws-account-id', variable: 'AWS_ACCOUNT_ID_SECRET'),
+                            aws(credentialsId: 'aws-ecr-jenkins-credential')
+                        ]) {
+                            env.AWS_ACCOUNT_ID = AWS_ACCOUNT_ID_SECRET
+                            def DOCKER_REGISTRY = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+                            container('aws-cli') {
+                                sh """
+                                    kubectl create secret docker-registry ${K8S_PULL_SECRET_NAME} \\
+                                    --namespace ${K8S_NAMESPACE} \\
+                                    --docker-server=${DOCKER_REGISTRY} \\
+                                    --docker-username=AWS \\
+                                    --docker-password=\$(aws ecr get-login-password --region ${AWS_REGION}) \\
+                                    --dry-run=client -o yaml | kubectl apply -f -
+                                """
+                            }
+                            echo "Secret ${K8S_PULL_SECRET_NAME} created/updated."
+                        }
+
                         echo "Deploying application to K8s with Helm using image tag: ${APP_VERSION}"
                         def DOCKER_REGISTRY = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
                         sh """
@@ -180,6 +202,7 @@ spec:
                                --namespace ${K8S_NAMESPACE} \\
                                --set image.repository=${DOCKER_REGISTRY}/${DOCKER_IMAGE_NAME} \\
                                --set image.tag=${APP_VERSION} \\
+                               --set imagePullSecrets[0].name=${K8S_PULL_SECRET_NAME} \\
                                --wait --atomic
                         """
 

@@ -1,0 +1,39 @@
+# jenkins-rbac.yaml
+
+# This Role grants permissions to manage application resources in the 'default' namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins-deployer-role
+  namespace: default # The namespace where you are deploying your app
+rules:
+  - apiGroups: ['', 'apps', 'extensions', 'networking.k8s.io', 'autoscaling']
+    resources:
+      [
+        'deployments',
+        'replicasets',
+        'pods',
+        'services',
+        'ingresses',
+        'configmaps',
+        'secrets',
+        'serviceaccounts',
+        'horizontalpodautoscalers',
+      ]
+    verbs: ['*'] # Using "*" for broad permissions. You can restrict this to ["get", "list", "watch", "create", "update", "patch", "delete"] if you prefer.
+
+---
+# This RoleBinding connects the Role to the Jenkins agent's ServiceAccount.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-deployer-binding
+  namespace: default # Must be the same namespace as the Role
+subjects:
+  - kind: ServiceAccount
+    name: default # The name of the ServiceAccount used by your Jenkins agent pods.
+    namespace: jenkins # The namespace where your Jenkins master and agent pods run.
+roleRef:
+  kind: Role
+  name: jenkins-deployer-role # The name of the Role created above.
+  apiGroup: rbac.authorization.k8s.io
