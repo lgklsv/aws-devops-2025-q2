@@ -36,9 +36,11 @@ spec:
         - name: docker-config
           mountPath: /kaniko/.docker
     - name: kubectl
-      image: bitnami/kubectl:latest
-      command: ["/bin/bash"]
-      args: ["-c", "sleep 99d"]
+      image: alpine/k8s:1.29.3
+      command:
+        - sleep
+      args:
+        - 99d
       volumeMounts:
         - name: workspace-volume
           mountPath: /home/jenkins/agent
@@ -163,8 +165,7 @@ spec:
                         echo 'Setting up Kubeconfig for deployment...'
 
                         withCredentials([string(credentialsId: KUBECONFIG_CONTENT_ID, variable: 'KUBECONFIG_CONTENT')]) {
-                            sh "mkdir -p \${HOME}/.kube"
-                            sh "echo \"\$KUBECONFIG_CONTENT\" > \${HOME}/.kube/config"
+                            sh "echo \"\$KUBECONFIG_CONTENT\" > /home/jenkins/.kube/config"
                             sh "chmod 600 \${HOME}/.kube/config"
                         }
 
