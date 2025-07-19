@@ -181,17 +181,20 @@ spec:
                         ]) {
                             env.AWS_ACCOUNT_ID = AWS_ACCOUNT_ID_SECRET
                             def DOCKER_REGISTRY = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                            def ecrToken = ''
 
                             container('aws-cli') {
-                                sh """
-                                    kubectl create secret docker-registry ${K8S_PULL_SECRET_NAME} \\
-                                    --namespace ${K8S_NAMESPACE} \\
-                                    --docker-server=${DOCKER_REGISTRY} \\
-                                    --docker-username=AWS \\
-                                    --docker-password=\$(aws ecr get-login-password --region ${AWS_REGION}) \\
-                                    --dry-run=client -o yaml | kubectl apply -f -
-                                """
+                                ecrToken = sh(script: "aws ecr get-login-password --region ${AWS_REGION}", returnStdout: true).trim()
                             }
+
+                            sh """
+                                kubectl create secret docker-registry ${K8S_PULL_SECRET_NAME} \\
+                                --namespace ${K8S_NAMESPACE} \\
+                                --docker-server=${DOCKER_REGISTRY} \\
+                                --docker-username=AWS \\
+                                --docker-password='${ecrToken}' \\
+                                --dry-run=client -o yaml | kubectl apply -f -
+                            """
                             echo "Secret ${K8S_PULL_SECRET_NAME} created/updated."
                         }
 
