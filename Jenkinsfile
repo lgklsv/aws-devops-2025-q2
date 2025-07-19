@@ -37,10 +37,8 @@ spec:
           mountPath: /kaniko/.docker
     - name: kubectl
       image: bitnami/kubectl:latest
-      command:
-        - sleep
-      args:
-        - 99d
+      command: ["/bin/bash"]
+      args: ["-c", "sleep 99d"]
       volumeMounts:
         - name: workspace-volume
           mountPath: /home/jenkins/agent
