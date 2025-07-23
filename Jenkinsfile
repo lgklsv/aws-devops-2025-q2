@@ -105,7 +105,6 @@ spec:
             }
         }
 
-
         // stage('SonarQube Analysis') {
         //     steps {
         //         withSonarQubeEnv(credentialsId: 'sonar-token-secret-id', installationName: 'SonarQube') {
