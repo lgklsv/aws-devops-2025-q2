@@ -1,0 +1,70 @@
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+
+server:
+  service:
+    type: ClusterIP
+
+  extraScrapeConfigs: |
+    - job_name: 'kubernetes-nodes'
+      kubernetes_sd_configs:
+        - role: node
+      relabel_configs:
+        - source_labels: [__address__]
+          regex: '(.*):10250'
+          replacement: '${1}:10250'
+          target_label: __address__
+        - action: labelmap
+          regex: __meta_kubernetes_node_(.+)
+        - target_label: __metrics_path__
+          replacement: /metrics
+      metric_relabel_configs:
+        - source_labels: [__name__]
+          regex: 'kube_node_status_capacity_memory_bytes|kube_node_status_capacity_cpu_cores'
+          action: keep
+
+    - job_name: 'kubernetes-pods'
+      kubernetes_sd_configs:
+        - role: pod
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          regex: (.+):(\d+)
+          target_label: __address__
+          replacement: ${1}:${2}
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+
+    - job_name: 'kubernetes-service-endpoints'
+      kubernetes_sd_configs:
+        - role: endpoints
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: (.+)
+          replacement: ${1}
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        - source_labels: [__address__]
+          action: replace
+          target_label: __address__
+          regex: (.+)
+          replacement: ${1}:80 # Default to port 80 if not specified by annotation
