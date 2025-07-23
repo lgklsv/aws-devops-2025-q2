@@ -19,7 +19,7 @@ REQUEST_LATENCY_SECONDS = Histogram(
 
 @app.route('/')
 def hello():
-    method = 'GET' 
+    method = 'GET'
     endpoint = '/' 
 
     start_time = time.time()
