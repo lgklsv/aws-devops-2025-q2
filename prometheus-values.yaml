@@ -7,24 +7,29 @@ nodeExporter:
 server:
   service:
     type: ClusterIP
+  extraScrapeConfigs:
+    - job_name: 'kubernetes-nodes-cadvisor'
+      scheme: https
 
-  extraScrapeConfigs: |
-    - job_name: 'kubernetes-nodes'
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
       kubernetes_sd_configs:
         - role: node
+
       relabel_configs:
-        - source_labels: [__address__]
-          regex: '(.*):10250'
-          replacement: '${1}:10250'
-          target_label: __address__
         - action: labelmap
-          regex: __meta_kubernetes_node_(.+)
-        - target_label: __metrics_path__
-          replacement: /metrics
-      metric_relabel_configs:
-        - source_labels: [__name__]
-          regex: 'kube_node_status_capacity_memory_bytes|kube_node_status_capacity_cpu_cores'
-          action: keep
+          regex: __meta_kubernetes_node_label_(.+)
+
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
 
     - job_name: 'kubernetes-pods'
       kubernetes_sd_configs:
@@ -56,15 +61,36 @@ server:
           action: replace
           target_label: __metrics_path__
           regex: (.+)
-        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_port]
+        - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
           action: replace
+          regex: (.+):(\d+);(.+)
           target_label: __address__
-          regex: (.+)
-          replacement: ${1}
+          replacement: ${1}:${3}
         - action: labelmap
           regex: __meta_kubernetes_service_label_(.+)
-        - source_labels: [__address__]
+
+    - job_name: 'node-exporter'
+      kubernetes_sd_configs:
+        - role: endpoints
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_service_name]
+          regex: node-exporter
+          action: keep
+        - source_labels: [__meta_kubernetes_pod_node_name]
           action: replace
-          target_label: __address__
+          target_label: instance
+        - target_label: __metrics_path__
+          replacement: /metrics
+
+    - job_name: 'kube-state-metrics'
+      static_configs:
+        - targets: ['kube-state-metrics.monitoring.svc.cluster.local:8080']
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_name]
           regex: (.+)
-          replacement: ${1}:80 # Default to port 80 if not specified by annotation
+          target_label: kubernetes_pod_name
+          action: replace
+        - source_labels: [__meta_kubernetes_namespace]
+          regex: (.+)
+          target_label: kubernetes_namespace
+          action: replace

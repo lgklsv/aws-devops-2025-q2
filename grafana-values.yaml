@@ -1,0 +1,57 @@
+admin:
+  existingSecret: grafana-admin-password
+  passwordKey: admin-password
+
+service:
+  type: ClusterIP
+
+persistence:
+  enabled: true
+  storageClassName: standard
+  size: 10Gi
+
+grafana:
+  resources:
+    requests:
+      cpu: '200m'
+      memory: '512Mi'
+    limits:
+      cpu: '1000m' # Allow up to 1 CPU core for burst
+      memory: '1.5Gi' # Allow up to 1.5 GB. This is critical.
+
+# Grafana Provisioning for Data Sources and Dashboards
+# This section allows you to define data sources and dashboards as code.
+grafana.ini:
+  # SMTP configuration will go here later for Alertmanager part
+  # [smtp]
+  # enabled = true
+  # host = smtp.example.com:587
+  # user = grafana@example.com
+  # password = your_smtp_password
+  # from_address = grafana@example.com
+  # skip_verify = true # Use with caution in production!
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server.monitoring.svc.cluster.local:80
+        isDefault: true
+        version: 1
+        editable: true
+
+dashboards:
+  default.yaml:
+    apiVersion: 1
+    providers:
+      - name: 'Default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: true
+        updateIntervalSeconds: 10
+        options:
+          path: /var/lib/grafana/dashboards
