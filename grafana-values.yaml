@@ -1,0 +1,52 @@
+admin:
+  existingSecret: grafana-admin-password
+  passwordKey: admin-password
+
+service:
+  type: ClusterIP
+
+persistence:
+  enabled: true
+  storageClassName: standard
+  size: 10Gi
+
+grafana:
+  resources:
+    requests:
+      cpu: '200m'
+      memory: '512Mi'
+    limits:
+      cpu: '1000m' # Allow up to 1 CPU core for burst
+      memory: '1.5Gi' # Allow up to 1.5 GB. This is critical.
+
+smtp:
+  enabled: true
+  host: mailhog.monitoring.svc.cluster.local:1025
+  fromAddress: admin@grafana.localhost
+  fromName: Grafana
+  skipVerify: true
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server.monitoring.svc.cluster.local:80
+        isDefault: true
+        version: 1
+        editable: true
+
+dashboards:
+  default.yaml:
+    apiVersion: 1
+    providers:
+      - name: 'Default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: true
+        updateIntervalSeconds: 10
+        options:
+          path: /var/lib/grafana/dashboards

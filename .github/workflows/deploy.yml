@@ -1,130 +1,130 @@
-name: Deploy Terraform Infrastructure
+# name: Deploy Terraform Infrastructure
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+# on:
+#   push:
+#     branches:
+#       - main
+#   pull_request:
+#     branches:
+#       - main
 
-env:
-  AWS_REGION: us-east-1
-  TR_VERSION: 1.12.1
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+# env:
+#   AWS_REGION: us-east-1
+#   TR_VERSION: 1.12.1
+#   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
-jobs:
-  terraform-check:
-    name: Terraform Check
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
+# jobs:
+#   terraform-check:
+#     name: Terraform Check
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: read
+#       id-token: write
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionsRole
-          aws-region: ${{ env.AWS_REGION }}
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionsRole
+#           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TR_VERSION }}
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: ${{ env.TR_VERSION }}
 
-      - name: Terraform Init (Check Job)
-        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
+#       - name: Terraform Init (Check Job)
+#         run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
 
-      - name: Terraform Format Check
-        run: terraform fmt -check
+#       - name: Terraform Format Check
+#         run: terraform fmt -check
 
-      - name: Terraform Validate
-        run: terraform validate
+#       - name: Terraform Validate
+#         run: terraform validate
 
-  terraform-plan:
-    name: Terraform Plan
-    runs-on: ubuntu-latest
-    needs: [terraform-check]
-    permissions:
-      id-token: write
-      contents: read
+#   terraform-plan:
+#     name: Terraform Plan
+#     runs-on: ubuntu-latest
+#     needs: [terraform-check]
+#     permissions:
+#       id-token: write
+#       contents: read
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionsRole
-          aws-region: ${{ env.AWS_REGION }}
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionsRole
+#           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TR_VERSION }}
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: ${{ env.TR_VERSION }}
 
-      - name: Create secrets tfvars file
-        run: |
-          echo "project_name = \"lgklsv-devops-course-2025\"" >> github_actions.tfvars
-          echo "aws_region = \"${{ env.AWS_REGION }}\"" >> github_actions.tfvars
-          echo "environment = \"dev\"" >> github_actions.tfvars
-          echo "s3_bucket_name = \"${{ secrets.TF_STATE_BUCKET_DEV }}\"" >> github_actions.tfvars
-          echo "key_name = \"${{ secrets.EC2_KEY_NAME }}\"" >> github_actions.tfvars
-          echo "my_ip_cidr = \"${{ secrets.MY_IP_CIDR }}\"" >> github_actions.tfvars
+#       - name: Create secrets tfvars file
+#         run: |
+#           echo "project_name = \"lgklsv-devops-course-2025\"" >> github_actions.tfvars
+#           echo "aws_region = \"${{ env.AWS_REGION }}\"" >> github_actions.tfvars
+#           echo "environment = \"dev\"" >> github_actions.tfvars
+#           echo "s3_bucket_name = \"${{ secrets.TF_STATE_BUCKET_DEV }}\"" >> github_actions.tfvars
+#           echo "key_name = \"${{ secrets.EC2_KEY_NAME }}\"" >> github_actions.tfvars
+#           echo "my_ip_cidr = \"${{ secrets.MY_IP_CIDR }}\"" >> github_actions.tfvars
 
-      - name: Terraform Init
-        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
+#       - name: Terraform Init
+#         run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
 
-      - name: Terraform Plan
-        id: plan
-        run: terraform plan -out tfplan -no-color -var-file="github_actions.tfvars"
+#       - name: Terraform Plan
+#         id: plan
+#         run: terraform plan -out tfplan -no-color -var-file="github_actions.tfvars"
 
-      - name: Upload Terraform Plan and Secrets tfvars artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-artifacts
-          path: |
-            tfplan
-            github_actions.tfvars
+#       - name: Upload Terraform Plan and Secrets tfvars artifact
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: terraform-artifacts
+#           path: |
+#             tfplan
+#             github_actions.tfvars
 
-  terraform-apply:
-    name: Terraform Apply
-    runs-on: ubuntu-latest
-    needs: [terraform-plan]
+#   terraform-apply:
+#     name: Terraform Apply
+#     runs-on: ubuntu-latest
+#     needs: [terraform-plan]
 
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      id-token: write
-      contents: read
+#     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#     permissions:
+#       id-token: write
+#       contents: read
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionsRole
-          aws-region: ${{ env.AWS_REGION }}
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionsRole
+#           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TR_VERSION }}
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: ${{ env.TR_VERSION }}
 
-      - name: Download Terraform Plan and Secrets tfvars artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-artifacts
-          path: .
+#       - name: Download Terraform Plan and Secrets tfvars artifact
+#         uses: actions/download-artifact@v4
+#         with:
+#           name: terraform-artifacts
+#           path: .
 
-      - name: Terraform Init (re-initialize backend for apply)
-        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
+#       - name: Terraform Init (re-initialize backend for apply)
+#         run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET_DEV }}" -backend-config="region=${{ env.AWS_REGION }}"
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve "tfplan"
+#       - name: Terraform Apply
+#         run: terraform apply -auto-approve "tfplan"
